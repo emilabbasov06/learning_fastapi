@@ -1,13 +1,25 @@
 import psycopg
 import time
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
 from psycopg.rows import dict_row
+from sqlalchemy.orm import Session
+from . import models
+from .database import engine, SessionLocal
 
+models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
+
+
+def get_db():
+  db = SessionLocal()
+  try:
+    yield db
+  finally:
+    db.close()
 
 
 class Post(BaseModel):
@@ -31,35 +43,14 @@ while True:
     time.sleep(2)
 
 
-my_posts = [
-  {
-    "title": "Best programming languges to learn in 2025",
-    "content": "I don't know :D",
-    "id": 1
-  },
-  {
-    "title": "Favourite foods",
-    "content": "I like pizza",
-    "id": 2,
-  }
-]
-
-
-def find_post(id):
-  for post in my_posts:
-    if post["id"] == id:
-      return post
-    
-
-def find_index_post(id):
-  for index, post in enumerate(my_posts):
-    if post["id"] == id:
-      return index
-
-
 @app.get("/")
 def root():
   return {"message": "Hellooooo!"}
+
+
+@app.get("/sqlalchemy")
+def test_posts(db: Session = Depends(get_db)):
+  return {"Status": "Success"}
 
 
 @app.get("/posts")
